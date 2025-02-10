@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 2
   tags:
   - Ground
+  - Enemy
+  - MovingPlatform
   layers:
   - Default
   - TransparentFX
@@ -47,6 +49,9 @@ TagManager:
     locked: 0
   - name: Graund
     uniqueID: 2729504753
+    locked: 0
+  - name: Enemy
+    uniqueID: 2334924047
     locked: 0
   - name: Character
     uniqueID: 1768550297

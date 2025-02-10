@@ -22,7 +22,7 @@ public class ChangeMotorSpeed : MonoBehaviour
 
     private void Update()
     {
-        if (Mathf.Approximately(sliderJoint.jointSpeed, 0f) && isMoving)
+        if (Mathf.Abs(sliderJoint.jointSpeed) < 0.01f && isMoving)
         {
             isMoving = false;
             StartCoroutine(ChangeMotorSpeedCoroutine());
@@ -35,7 +35,7 @@ public class ChangeMotorSpeed : MonoBehaviour
         motorJoint.motorSpeed *= -1;
         sliderJoint.motor = motorJoint;
 
-        yield return new WaitForSeconds(0.05f);
+        yield return new WaitForSeconds(0.2f);
         isMoving = true;
     }
 }

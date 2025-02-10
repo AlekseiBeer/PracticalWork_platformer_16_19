@@ -12,9 +12,8 @@ namespace Platformer.Player
         Air
     }
 
-
     [RequireComponent(typeof(Rigidbody2D))]
-    public class PlayrMovment : MonoBehaviour
+    public class PlayerMovement : MonoBehaviour
     {
         [Header("Movement Settings")]
         [SerializeField] private float _movementSpeed = 5f;
@@ -25,18 +24,27 @@ namespace Platformer.Player
         [SerializeField] private LayerMask _groundLayerMask;
         [SerializeField] private float _groundCheckCooldown = 0.05f;
 
+        [Header("Wall Check Settings")]
+        [SerializeField] private Vector2 _wallCheckSize = new Vector2(0.35f, 0.49f);
+        [SerializeField] private Vector3 _posOffsetRight = Vector2.zero;
+        [SerializeField] private Vector3 _posOffsetLeft = Vector2.zero;
+
+
         private State _playerState;
 
         private PlayerInput _playerInput;
         private Rigidbody2D _playerRigidbody;
         private Animator _playerAnimator;
         private SpriteRenderer _playerSprite;
-        
+
         private bool _isGrounded;
         private bool _isJumping;
         private bool _isRunning;
         private bool _isAttacking;
         private bool _canCheckGround = true;
+
+        private Vector2 _externalForceAccumulator = Vector2.zero;
+        private Vector2 _currentPlatformVelocity = Vector2.zero;
 
         private void Awake()
         {
@@ -46,18 +54,40 @@ namespace Platformer.Player
             _playerAnimator = GetComponent<Animator>();
         }
 
-        // Update is called once per frame
         void Update()
         {
             CheckGrounded();
             HandleMovement();
             HandleJump();
             HandleAttack();
-            
+
             UpdateState();
             UpdateAnimation();
+        }
 
-            //Debug.Log(_playerState);
+        private void FixedUpdate()
+        {
+            float horizontal = _playerInput.Horizontal;
+
+            if ((!_isGrounded && IsTouchingWallRight() && horizontal > 0) || (!_isGrounded && IsTouchingWallLeft() && horizontal < 0))
+                horizontal = 0;
+
+            float inputVelocity = horizontal * _movementSpeed;
+
+            float extraDecay = 0f;
+            if (horizontal != 0 && _externalForceAccumulator.x * horizontal < 0)
+            {
+                extraDecay = 4f;
+            }
+            float combinedDecayRate = 3f + extraDecay;
+
+            float finalVelocityX = inputVelocity + _externalForceAccumulator.x + _currentPlatformVelocity.x;
+            float finalVelocityY = _playerRigidbody.velocity.y;
+                
+            _playerRigidbody.velocity = new Vector2(finalVelocityX, finalVelocityY);
+
+            // Плавное затухание внешних сил
+            _externalForceAccumulator = Vector2.Lerp(_externalForceAccumulator, Vector2.zero, combinedDecayRate * Time.fixedDeltaTime);
         }
 
         private void HandleMovement()
@@ -96,6 +126,24 @@ namespace Platformer.Player
                 _isGrounded = false;
             }
         }
+
+        private bool IsTouchingWallRight()
+        {
+            Collider2D[] colliders = Physics2D.OverlapBoxAll(transform.position + _posOffsetRight, _wallCheckSize, 0f, _groundLayerMask);
+            if (colliders.Length > 0)
+                return true;
+            else
+                return false;
+        }
+        private bool IsTouchingWallLeft()
+        {
+            Collider2D[] colliders = Physics2D.OverlapBoxAll(transform.position + _posOffsetLeft, _wallCheckSize, 0f, _groundLayerMask);
+            if (colliders.Length > 0)
+                return true;
+            else
+                return false;
+        }
+
         private IEnumerator GroundCheckCooldown()
         {
             yield return new WaitForSeconds(_groundCheckCooldown);
@@ -134,6 +182,8 @@ namespace Platformer.Player
         {
             _isJumping = true;
             _canCheckGround = false;
+            if (!IsTouchingWallRight() && !IsTouchingWallLeft())
+                AddExternalForce(_playerRigidbody.velocity);
             StartCoroutine(GroundCheckCooldown());
             _playerRigidbody.AddForce(Vector2.up * _jumpForce, ForceMode2D.Impulse);
         }
@@ -146,11 +196,33 @@ namespace Platformer.Player
         private void Run(float horizontal)
         {
             _isRunning = true;
-            Vector2 velocity = _playerRigidbody.velocity;
-            velocity.x = horizontal * _movementSpeed;
-            _playerRigidbody.velocity = velocity;
+            _playerSprite.flipX = horizontal < 0;
+        }
 
-            _playerSprite.flipX = _playerInput.Horizontal < 0;
+        public void AddExternalForce(Vector2 force)
+        {
+            _externalForceAccumulator += force;
+        }
+
+        // Обработка столкновений с движущимися платформами
+        private void OnCollisionStay2D(Collision2D collision)
+        {
+            if (collision.gameObject.CompareTag("MovingPlatform"))
+            {
+                Rigidbody2D platformRb = collision.gameObject.GetComponent<Rigidbody2D>();
+                if (platformRb != null)
+                {
+                    _currentPlatformVelocity = platformRb.velocity;
+                }
+            }
+        }
+
+        private void OnCollisionExit2D(Collision2D collision)
+        {
+            if (collision.gameObject.CompareTag("MovingPlatform"))
+            {
+                _currentPlatformVelocity = Vector2.zero;
+            }
         }
     }
 }
