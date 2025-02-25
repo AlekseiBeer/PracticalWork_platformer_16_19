@@ -43,14 +43,6 @@ public class PatrolEnemy : BaseEnemy
         canMove = true;
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            IDamageable target = other.GetComponent<IDamageable>();
-            target?.TakeDamage(Damage);
-        }
-    }
 
     public override void TakeDamage(int damage, Vector2 damageSource = default)
     {

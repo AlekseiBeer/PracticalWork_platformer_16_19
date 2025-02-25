@@ -31,6 +31,8 @@ public abstract class BaseEnemy : MonoBehaviour, IDamageable
 
     public virtual void Die()
     {
+        ScoreManager.Instance.AddScore(enemySettings.scoreValue);
+
         HealthBarManager.Instance.UnregisterEnemy(transform);
         Destroy(gameObject);
     }

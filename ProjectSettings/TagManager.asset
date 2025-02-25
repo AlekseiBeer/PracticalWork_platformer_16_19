@@ -7,6 +7,7 @@ TagManager:
   - Ground
   - Enemy
   - MovingPlatform
+  - CheckpointGround
   layers:
   - Default
   - TransparentFX
@@ -47,8 +48,14 @@ TagManager:
   - name: Waters
     uniqueID: 1980466819
     locked: 0
+  - name: PlantsBackground
+    uniqueID: 3345802827
+    locked: 0
   - name: Graund
     uniqueID: 2729504753
+    locked: 0
+  - name: PlantsForeground
+    uniqueID: 1899131687
     locked: 0
   - name: Enemy
     uniqueID: 2334924047

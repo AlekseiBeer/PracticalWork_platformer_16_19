@@ -29,6 +29,12 @@ namespace Platformer.Player
         [SerializeField] private Vector3 _posOffsetRight = Vector2.zero;
         [SerializeField] private Vector3 _posOffsetLeft = Vector2.zero;
 
+        [Header("Melee Attack Settings")]
+        [SerializeField] private float attackDamage = 10f;     
+        [SerializeField] private float attackRange = 0.5f;         
+        [SerializeField] private Vector2 attackOffset = new Vector2(0.5f, 0);
+        [SerializeField] private LayerMask enemyLayerMask;
+
 
         private State _playerState;
 
@@ -42,9 +48,13 @@ namespace Platformer.Player
         private bool _isRunning;
         private bool _isAttacking;
         private bool _canCheckGround = true;
+        private bool _isOnCheckpointGround = false;
 
         private Vector2 _externalForceAccumulator = Vector2.zero;
         private Vector2 _currentPlatformVelocity = Vector2.zero;
+
+        public bool IsGrounded => _isGrounded;
+        public bool IsOnCheckpointGround => _isOnCheckpointGround;
 
         private void Awake()
         {
@@ -120,10 +130,16 @@ namespace Platformer.Player
             {
                 _isJumping = false;
                 _isGrounded = true;
+                foreach (var col in colliders)
+                {
+                    if (col.CompareTag("CheckpointGround"))
+                        _isOnCheckpointGround = true;
+                }
             }
             else
             {
                 _isGrounded = false;
+                _isOnCheckpointGround = false;
             }
         }
 
@@ -204,6 +220,11 @@ namespace Platformer.Player
             _externalForceAccumulator += force;
         }
 
+        public void ResetExternalForces()
+        {
+            _externalForceAccumulator = Vector2.zero;
+        }
+
         // Обработка столкновений с движущимися платформами
         private void OnCollisionStay2D(Collision2D collision)
         {
@@ -222,6 +243,56 @@ namespace Platformer.Player
             if (collision.gameObject.CompareTag("MovingPlatform"))
             {
                 _currentPlatformVelocity = Vector2.zero;
+            }
+        }
+
+        public void PerformMeleeAttack()
+        {
+            // Рассчитываем позицию атаки с учётом направления игрока
+            Vector2 attackPos = (Vector2)transform.position;
+            attackPos.y += attackOffset.y;
+            if (_playerSprite.flipX)
+            {
+                // Если игрок смотрит влево, смещаем влево
+                attackPos.x -= attackOffset.x;
+            }
+            else
+            {
+                // Если игрок смотрит вправо, смещаем вправо
+                attackPos.x += attackOffset.x;
+            }
+
+            Debug.Log($"rgrewgwerg");
+
+            // Выполняем проверку области атаки с использованием OverlapCircleAll
+            Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPos, attackRange, enemyLayerMask);
+            foreach (Collider2D enemy in hitEnemies)
+            {
+                // Если у врага есть компонент, реализующий IDamageable, наносим урон
+                IDamageable damageable = enemy.GetComponent<IDamageable>();
+                if (damageable != null)
+                {
+                    damageable.TakeDamage((int)attackDamage);
+                }
+            }
+        }
+
+        private void OnDrawGizmosSelected()
+        {
+            if (_playerSprite != null)
+            {
+                Gizmos.color = Color.red;
+                Vector2 attackPos = (Vector2)transform.position;
+                attackPos.y += attackOffset.y;
+                if (_playerSprite.flipX)
+                {
+                    attackPos.x -= attackOffset.x;
+                }
+                else
+                {
+                    attackPos.x += attackOffset.x;
+                }
+                Gizmos.DrawWireSphere(attackPos, attackRange);
             }
         }
     }

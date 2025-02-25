@@ -8,4 +8,5 @@ public class EnemySettings : ScriptableObject
     public int attackDamage = 10;
     public float attackInterval = 1.5f;
     public float impulseForceBullet = 10f;
+    public int scoreValue = 20;
 }
